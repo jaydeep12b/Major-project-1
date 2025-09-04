@@ -1,0 +1,52 @@
+# Download SpamAssassin Public Corpus
+!wget https://spamassassin.apache.org/old/publiccorpus/20030228_easy_ham.tar.bz2
+!wget https://spamassassin.apache.org/old/publiccorpus/20030228_spam.tar.bz2
+
+# Extract files
+!tar -xjf 20030228_easy_ham.tar.bz2
+!tar -xjf 20030228_spam.tar.bz2
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Assuming your cleaned dataset is in df["text"], df["label"]
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(
+    df["text"], df["label"], test_size=0.2, random_state=42, stratify=df["label"]
+)
+
+# Vectorize text with TF-IDF
+vectorizer = TfidfVectorizer(max_features=5000)
+X_train_vec = vectorizer.fit_transform(X_train)
+X_test_vec = vectorizer.transform(X_test)
+
+# Random Forest model
+rf_model = RandomForestClassifier(
+    n_estimators=200,     # number of trees
+    max_depth=None,      # let it grow fully
+    random_state=42,
+    n_jobs=-1            # use all CPU cores
+)
+rf_model.fit(X_train_vec, y_train)
+
+# Predictions
+y_pred = rf_model.predict(X_test_vec)
+
+# Evaluation
+print("✅ Random Forest Performance:\n")
+print(classification_report(y_test, y_pred))
+
+# Confusion Matrix Heatmap
+cm = confusion_matrix(y_test, y_pred)
+plt.figure(figsize=(6,4))
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
+            xticklabels=["Ham","Spam"], yticklabels=["Ham","Spam"])
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.title("Random Forest - Confusion Matrix Heatmap")
+plt.show()
